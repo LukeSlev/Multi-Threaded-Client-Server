@@ -17,14 +17,14 @@
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
 typedef struct{
-    int pos; 
+    int pos;
     int is_read;
     char msg[COM_BUFF_SIZE];
 } ClientRequest; // To store the parsed client message
 
 // parse the massage from client and get the control info and message info
 // Input: msg: message string with format "pos-is_read-XXXXXXX"
-//        rqst: previously allocated stucture to store the parsed result 
+//        rqst: previously allocated stucture to store the parsed result
 int ParseMsg(char* msg, ClientRequest* rqst){
     char *token;
     token = strsep(&msg, "-");
@@ -51,7 +51,7 @@ void setContent(char* src, int pos, char **theArray){
 
 // Function to get the server string array
 // Input: dst: dst string buffer to get the server content
-//        pos: position to be get 
+//        pos: position to be get
 //        theArray: server string array
 void getContent(char* dst, int pos, char **theArray){
     int i;
@@ -73,10 +73,10 @@ void saveTimes(double* time, int length){
     //     printf("Error opening the output file: server_output_request_time.\n");
     //     exit(1);
     // }
-    // for (i=0; i<length; ++i){
-    //     fprintf(op, "%e\n", time[i]);
-    //     elapsed_time += time[i];
-    // }
+    for (i=0; i<length; ++i){
+        // fprintf(op, "%e\n", time[i]);
+        elapsed_time += time[i];
+    }
     // fclose(op);
     if ((op = fopen("server_output_time_aggregated","a+")) == NULL){
         printf("Error opening the output file: server_output_time_aggregated.\n");
