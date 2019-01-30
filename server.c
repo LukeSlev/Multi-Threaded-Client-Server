@@ -30,14 +30,14 @@ void *dealWithArray(void *args)
     RequestInfo *info =  (RequestInfo *) args;
     int clientFileDescriptor = info->fd;
     int idx = info->idx;
-    char str[20];
+    char str[COM_BUFF_SIZE];
     char dst[COM_BUFF_SIZE];
     ClientRequest rqst;
     double start, finished;
 
     free(info);
-    printf("fd: %i idx: %i\n",clientFileDescriptor,idx);
-    read(clientFileDescriptor,str,20);
+
+    read(clientFileDescriptor,str,COM_BUFF_SIZE);
     GET_TIME(start);
     ParseMsg(str, &rqst);
 
@@ -47,28 +47,28 @@ void *dealWithArray(void *args)
       setContent(rqst.msg, rqst.pos, theArray);
       pthread_rwlock_unlock(&locks[rqst.pos]);
       getContent(dst, rqst.pos, theArray);
-      printf("You just wrote %s my guy\n",dst);
+
       GET_TIME(finished);
-      write(clientFileDescriptor,dst,strlen(dst)+1);
+      write(clientFileDescriptor,dst,COM_BUFF_SIZE);
       break;
 
       case 1:
         pthread_rwlock_rdlock(&locks[rqst.pos]);
         getContent(dst, rqst.pos, theArray);
         pthread_rwlock_unlock(&locks[rqst.pos]);
-        printf("You just read %s my guy\n",dst);
+
         GET_TIME(finished);
-        write(clientFileDescriptor,dst,strlen(dst)+1);
+        write(clientFileDescriptor,dst,COM_BUFF_SIZE);
       break;
 
       default:
-      printf("uh oh dude\n");
+      printf("\n\n\nuh oh dude\n\n\n\n");
       close(clientFileDescriptor);
       return NULL;
       break;
     }
     latencies[idx] = finished - start;
-    printf("The elapsed time is %e seconds\n", latencies[idx]);
+
     close(clientFileDescriptor);
     return NULL;
 }
@@ -88,23 +88,24 @@ int runServer(int N, char * ip, int port) {
   {
     printf("socket has been created\n");
     listen(serverFileDescriptor,2000);
-    for(i=0;i<COM_NUM_REQUEST;i++)      //can support 20 clients at a time
+    while(1)
     {
-      info = (RequestInfo*) malloc(sizeof(RequestInfo));
-      clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL);
-      info->fd = clientFileDescriptor;
-      info->idx = i;
-      printf("w fd: %i idx: %i\n",clientFileDescriptor,i);
-      printf("Connected to client %d\n",clientFileDescriptor);
-      pthread_create(&t[i],NULL,dealWithArray,(void *) info); //long)clientFileDescriptor
-    }
+      for(i=0;i<COM_NUM_REQUEST;i++)      //can support 20 clients at a time
+      {
+        info = (RequestInfo*) malloc(sizeof(RequestInfo));
+        clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL);
+        info->fd = clientFileDescriptor;
+        info->idx = i;
 
-    for(i=0;i<COM_NUM_REQUEST;i++)      //can support 20 clients at a time
-    {
-      pthread_join(t[i],NULL); //long)clientFileDescriptor
+        pthread_create(&t[i],NULL,dealWithArray,(void *) info);
+      }
+      for(i=0;i<COM_NUM_REQUEST;i++)      //can support COM_NUM_REQUEST clients at a time
+      {
+        pthread_join(t[i],NULL);
+      }
+      saveTimes(latencies,COM_NUM_REQUEST);
     }
     close(serverFileDescriptor);
-    saveTimes(latencies,COM_NUM_REQUEST);
   }
   else{
       printf("socket creation failed\n");
@@ -130,31 +131,34 @@ int main(int argc, char* argv[])
   server_port = atoi(argv[3]);
 
   theArray = (char**) malloc(N * sizeof(char*));
-  locks = (pthread_rwlock_t*) malloc(N * sizeof(pthread_rwlock_t));
+  locks = (pthread_rwlock_t*) malloc(N * sizeof(pthread_rwlock_t)); // Array of read write locks for each element in theArray
   latencies = (double*) malloc(COM_NUM_REQUEST * sizeof(double));
 
-
+  // Allocate the array with initial strings
   for (i = 0; i < N; i ++){
     theArray[i] = (char*) malloc(STR_LEN * sizeof(char));
     sprintf(theArray[i], "theArray[%d]: initial value", i);
     printf("%s\n\n", theArray[i]);
   }
 
+  // initialize each lock
   for (i=0; i<N;i++) {
     pthread_rwlock_init(&locks[i], NULL);
   }
 
+  // main function
   if (runServer(N, server_ip, server_port) != 0) {
     printf("Server error\n");
     return(1);
   }
 
-
+  // Free up the global array
   for (i=0; i<N; ++i){
     free(theArray[i]);
   }
   free(theArray);
 
+  // Get rid of all the locks
   for (i=0; i<N; ++i){
     pthread_rwlock_destroy(&locks[i]);
   }

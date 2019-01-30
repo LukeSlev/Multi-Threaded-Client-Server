@@ -3,16 +3,16 @@
 #   author: Luke Slevinsky, 1453199
 #						Logan McDonald, 1401297
 #
-# Usage: make  // compiles the program
+# Usage: make  // compiles the program server program
 #				 make sanitize // compiles the program with thread sanitization flags
 #        make tar   	 // create a 'tar.gz' archive of 'allFiles'
-#				 make matrixgen // compile matrixgen
-#				 make serialtester // compile serialtester
+#				 make client // compile client
+#				 make attacker // compile attacker
 #        make clean 	 // remove unneeded files
 # ------------------------------------------------------------
 
 target :=		a1
-allFiles := Makefile  timer.h common.h server.c client.c attacker.c
+allFiles := Makefile  timer.h common.h server.c client.c attacker.c test.sh
 objects :=
 headers := timer.h common.h
 CFLAGS :=  -Wall
@@ -22,8 +22,8 @@ DEBUGFLAG := -g
 CC := gcc
 # ------------------------------------------------------------
 
-server: $(headers) server.o
-	$(CC) $(LDFLAGS) $(DEBUGFLAG) $(CFLAGS) -o server server.o
+default: $(headers) server.o
+	$(CC) $(LDFLAGS) $(DEBUGFLAG) $(CFLAGS) -o main server.o
 
 client: $(headers)  client.o
 	$(CC) $(LDFLAGS) $(CFLAGS) -o client client.o
@@ -47,4 +47,4 @@ tar:
 	gzip $(target).tar
 
 clean:
-	rm *.o client server attacker
+	rm *.o client main attacker
