@@ -29,9 +29,11 @@ def main(filename,label):
 
   # produce the output
   with open("stats.txt", "a+") as out:
+    out.write("\n")
     out.write(label + "\n")
     out.write("Mean: "+str(mean) + "\n")
     out.write("Median: "+str(med) + "\n")
+    out.write("\n")
 
 
 

@@ -4,6 +4,11 @@ Authors:
 * Luke Slevinsky
 * Logan McDonald
 
+# Notes
+  * There are a few different implementations of this idea, namely server.c, main1.c, and main2.c that implement
+      multiple read-write locks, a single read-write lock, multiple mutex. The best implementation
+      is server.c
+
 # Steps to Run
   1. Unzip the downloaded folder
   2. Use the MakeFile to compile the necessary files (`make` and `make client` if you are testing the client program)
