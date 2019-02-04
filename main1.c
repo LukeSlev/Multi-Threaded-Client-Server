@@ -137,7 +137,7 @@ int main(int argc, char* argv[])
   for (i = 0; i < N; i ++){
     theArray[i] = (char*) malloc(STR_LEN * sizeof(char));
     sprintf(theArray[i], "theArray[%d]: initial value", i);
-    printf("%s\n\n", theArray[i]);
+    // printf("%s\n\n", theArray[i]);
   }
 
   // initialize each lock

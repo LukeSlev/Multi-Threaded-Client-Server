@@ -21,7 +21,7 @@ int runServer(int N, char * ip, int port);
 void *dealWithArray(void *args);
 
 char **theArray;
-pthread_rwlock_t *locks;
+pthread_mutex_t lock;
 double *latencies;
 
 
@@ -43,9 +43,9 @@ void *dealWithArray(void *args)
 
     switch (rqst.is_read) {
       case 0:
-      pthread_rwlock_wrlock(&locks[rqst.pos]);
+      pthread_mutex_lock(&lock);
       setContent(rqst.msg, rqst.pos, theArray);
-      pthread_rwlock_unlock(&locks[rqst.pos]);
+      pthread_mutex_unlock(&lock);
       getContent(dst, rqst.pos, theArray);
 
       GET_TIME(finished);
@@ -53,9 +53,9 @@ void *dealWithArray(void *args)
       break;
 
       case 1:
-        pthread_rwlock_rdlock(&locks[rqst.pos]);
+        pthread_mutex_lock(&lock);
         getContent(dst, rqst.pos, theArray);
-        pthread_rwlock_unlock(&locks[rqst.pos]);
+        pthread_mutex_unlock(&lock);
 
         GET_TIME(finished);
         write(clientFileDescriptor,dst,COM_BUFF_SIZE);
@@ -131,7 +131,6 @@ int main(int argc, char* argv[])
   server_port = atoi(argv[3]);
 
   theArray = (char**) malloc(N * sizeof(char*));
-  locks = (pthread_rwlock_t*) malloc(N * sizeof(pthread_rwlock_t)); // Array of read write locks for each element in theArray
   latencies = (double*) malloc(COM_NUM_REQUEST * sizeof(double));
 
   // Allocate the array with initial strings
@@ -142,9 +141,8 @@ int main(int argc, char* argv[])
   }
 
   // initialize each lock
-  for (i=0; i<N;i++) {
-    pthread_rwlock_init(&locks[i], NULL);
-  }
+  pthread_mutex_init(&lock, NULL);
+
 
   // main function
   if (runServer(N, server_ip, server_port) != 0) {
@@ -159,10 +157,8 @@ int main(int argc, char* argv[])
   free(theArray);
 
   // Get rid of all the locks
-  for (i=0; i<N; ++i){
-    pthread_rwlock_destroy(&locks[i]);
-  }
-  free(locks);
+  pthread_mutex_destroy(&lock);
+
   free(latencies);
 
   return(0);
