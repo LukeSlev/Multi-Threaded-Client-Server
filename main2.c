@@ -12,6 +12,11 @@
 
 #define STR_LEN 1000
 
+/*
+Struct to store a file descriptor and index to pass to a thread
+The file descriptor is the one the thread should use for read and write
+The index is for latencies array, and specifies where the thread should record its latency time
+*/
 typedef struct{
   int fd;
   double idx;
@@ -24,7 +29,13 @@ char **theArray;
 pthread_mutex_t *locks;
 double *latencies;
 
-
+/*
+Main thread function
+Reads a request from a provided file descriptor, services the request and writes back a string
+Records the time and stores it at the appropriate index in latency array
+For a write, writes to the array and reads it back before writing what was read to client
+For a read, reads the value and writes it to client
+*/
 void *dealWithArray(void *args)
 {
     RequestInfo *info =  (RequestInfo *) args;
@@ -37,12 +48,13 @@ void *dealWithArray(void *args)
 
     free(info);
 
+    // read client request
     read(clientFileDescriptor,str,COM_BUFF_SIZE);
     GET_TIME(start);
     ParseMsg(str, &rqst);
 
     switch (rqst.is_read) {
-      case 0:
+      case 0: // write
       pthread_mutex_lock(&locks[rqst.pos]);
       setContent(rqst.msg, rqst.pos, theArray);
       pthread_mutex_unlock(&locks[rqst.pos]);
@@ -52,7 +64,7 @@ void *dealWithArray(void *args)
       write(clientFileDescriptor,dst,COM_BUFF_SIZE);
       break;
 
-      case 1:
+      case 1: // read
         pthread_mutex_lock(&locks[rqst.pos]);
         getContent(dst, rqst.pos, theArray);
         pthread_mutex_unlock(&locks[rqst.pos]);
@@ -67,12 +79,17 @@ void *dealWithArray(void *args)
       return NULL;
       break;
     }
+    // store indvidual memory access latency
     latencies[idx] = finished - start;
 
     close(clientFileDescriptor);
     return NULL;
 }
 
+/*
+Main server function
+Connects to clients and spawns threads to service their requests in a infinite loop
+*/
 int runServer(int N, char * ip, int port) {
   struct sockaddr_in sock_var;
   int serverFileDescriptor=socket(AF_INET,SOCK_STREAM,0);
@@ -90,8 +107,9 @@ int runServer(int N, char * ip, int port) {
     listen(serverFileDescriptor,2000);
     while(1)
     {
-      for(i=0;i<COM_NUM_REQUEST;i++)      //can support 20 clients at a time
+      for(i=0;i<COM_NUM_REQUEST;i++)    //can support COM_NUM_REQUEST clients at a time
       {
+        // create a struct to pass to thread, accept the client and spawn a thread
         info = (RequestInfo*) malloc(sizeof(RequestInfo));
         clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL);
         info->fd = clientFileDescriptor;
@@ -99,10 +117,11 @@ int runServer(int N, char * ip, int port) {
 
         pthread_create(&t[i],NULL,dealWithArray,(void *) info);
       }
-      for(i=0;i<COM_NUM_REQUEST;i++)      //can support COM_NUM_REQUEST clients at a time
+      for(i=0;i<COM_NUM_REQUEST;i++)      
       {
         pthread_join(t[i],NULL);
       }
+      // save all latency times as the sum of values
       saveTimes(latencies,COM_NUM_REQUEST);
     }
     close(serverFileDescriptor);
@@ -113,7 +132,10 @@ int runServer(int N, char * ip, int port) {
   return 0;
 }
 
-
+/*
+Main function
+Parses input, allocates memory, runs the server functionality, then frees the allocated memory
+*/
 int main(int argc, char* argv[])
 {
   int N, i;
@@ -141,7 +163,7 @@ int main(int argc, char* argv[])
     // printf("%s\n\n", theArray[i]);
   }
 
-  // initialize each lock
+  // initialize each mutex
   for (i=0; i<N;i++) {
     pthread_mutex_init(&locks[i], NULL);
   }
@@ -158,7 +180,7 @@ int main(int argc, char* argv[])
   }
   free(theArray);
 
-  // Get rid of all the locks
+  // Get rid of all the mutexes
   for (i=0; i<N; ++i){
     pthread_mutex_destroy(&locks[i]);
   }
