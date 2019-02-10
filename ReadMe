@@ -5,8 +5,8 @@ Authors:
 * Logan McDonald
 
 # Notes
-  * There are a few different implementations of this idea, namely server.c, main1.c, and main2.c that implement
-      multiple read-write locks, a single read-write lock, multiple mutex. The best implementation
+  * There are a few different implementations of this idea, namely server.c, main1.c, main2.c, and main3.c that implement
+      multiple read-write locks, a single read-write lock, multiple mutex and a single mutex. The best implementation
       is server.c
 
 # Steps to Run

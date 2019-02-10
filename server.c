@@ -55,10 +55,14 @@ void *dealWithArray(void *args)
 
     switch (rqst.is_read) {
       case 0: // write
+      // write content
       pthread_rwlock_wrlock(&locks[rqst.pos]);
       setContent(rqst.msg, rqst.pos, theArray);
       pthread_rwlock_unlock(&locks[rqst.pos]);
+      // read content that was just written to make sure it was successful
+      pthread_rwlock_rdlock(&locks[rqst.pos]);
       getContent(dst, rqst.pos, theArray);
+      pthread_rwlock_unlock(&locks[rqst.pos]);
 
       GET_TIME(finished);
       write(clientFileDescriptor,dst,COM_BUFF_SIZE);
